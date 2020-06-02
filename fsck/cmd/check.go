@@ -223,6 +223,7 @@ func dumpObsoleteInode(imap map[uint64]*Inode, name string) error {
 	var (
 		obsoleteTotalFileSize uint64
 		totalFileSize         uint64
+		safeCleanSize         uint64
 	)
 
 	fp, err := os.Create(name)
@@ -237,11 +238,14 @@ func dumpObsoleteInode(imap map[uint64]*Inode, name string) error {
 				return err
 			}
 			obsoleteTotalFileSize += inode.Size
+			if inode.NLink == 0 {
+				safeCleanSize += inode.Size
+			}
 		}
 		totalFileSize += inode.Size
 	}
 
-	fmt.Printf("Total File Size: %v\nObselete Total File Size: %v\n", totalFileSize, obsoleteTotalFileSize)
+	fmt.Printf("Total File Size: %v\nObselete Total File Size: %v\nNLink Zero Total File Size: %v\n", totalFileSize, obsoleteTotalFileSize, safeCleanSize)
 	return nil
 }
 
