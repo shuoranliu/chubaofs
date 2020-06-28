@@ -148,7 +148,7 @@ func (f *File) Release(ctx context.Context, req *fuse.ReleaseRequest) (err error
 		return fuse.EIO
 	}
 
-	f.super.ic.Delete(ino)
+	//f.super.ic.Delete(ino)
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Release: ino(%v) req(%v) (%v)ns", ino, req, elapsed.Nanoseconds())
 	return nil
@@ -265,7 +265,7 @@ func (f *File) Flush(ctx context.Context, req *fuse.FlushRequest) (err error) {
 		f.super.handleError("Flush", msg)
 		return fuse.EIO
 	}
-	f.super.ic.Delete(f.info.Inode)
+	//f.super.ic.Delete(f.info.Inode)
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Flush: ino(%v) (%v)ns", f.info.Inode, elapsed.Nanoseconds())
 	return nil
@@ -281,7 +281,7 @@ func (f *File) Fsync(ctx context.Context, req *fuse.FsyncRequest) (err error) {
 		f.super.handleError("Fsync", msg)
 		return fuse.EIO
 	}
-	f.super.ic.Delete(f.info.Inode)
+	//f.super.ic.Delete(f.info.Inode)
 	elapsed := time.Since(start)
 	log.LogDebugf("TRACE Fsync: ino(%v) (%v)ns", f.info.Inode, elapsed.Nanoseconds())
 	return nil
@@ -428,7 +428,6 @@ func (f *File) fileSize(ino uint64) (size int, gen uint64) {
 	log.LogDebugf("fileSize: ino(%v) fileSize(%v) gen(%v) valid(%v)", ino, size, gen, valid)
 
 	if !valid {
-		f.super.ic.Delete(ino)
 		if info, err := f.super.InodeGet(ino); err == nil {
 			size = int(info.Size)
 			gen = info.Generation
