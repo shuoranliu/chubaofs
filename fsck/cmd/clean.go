@@ -1,8 +1,21 @@
+// Copyright 2020 The Chubao Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+// implied. See the License for the specific language governing
+// permissions and limitations under the License.
+
 package cmd
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,6 +23,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/chubaofs/chubaofs/proto"
 	"github.com/chubaofs/chubaofs/sdk/meta"
@@ -19,11 +34,68 @@ import (
 
 var gMetaWrapper *meta.MetaWrapper
 
+func newCleanCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "clean",
+		Short: "clean dirty inode or dentry according to some rules",
+		Args:  cobra.MinimumNArgs(0),
+	}
+
+	c.AddCommand(
+		newCleanInodeCmd(),
+		newCleanDentryCmd(),
+		newEvictInodeCmd(),
+	)
+
+	return c
+}
+
+func newCleanInodeCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "inode",
+		Short: "clean dirty inode",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := Clean("inode"); err != nil {
+				fmt.Println(err)
+			}
+		},
+	}
+
+	return c
+}
+
+func newCleanDentryCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "dentry",
+		Short: "clean dirty dentry",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := Clean("dentry"); err != nil {
+				fmt.Println(err)
+			}
+		},
+	}
+
+	return c
+}
+
+func newEvictInodeCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "evict",
+		Short: "clean dirty dentry",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := Clean("evict"); err != nil {
+				fmt.Println(err)
+			}
+		},
+	}
+
+	return c
+}
+
 func Clean(opt string) error {
 	defer log.LogFlush()
 
 	if MasterAddr == "" || VolName == "" {
-		flag.Usage()
 		return fmt.Errorf("Lack of parameters: master(%v) vol(%v)", MasterAddr, VolName)
 	}
 

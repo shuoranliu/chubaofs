@@ -1,14 +1,29 @@
+// Copyright 2020 The Chubao Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+// implied. See the License for the specific language governing
+// permissions and limitations under the License.
+
 package cmd
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/spf13/cobra"
 
 	"github.com/chubaofs/chubaofs/proto"
 )
@@ -18,18 +33,73 @@ const (
 	DentryCheckOpt
 )
 
-func Check(chkopt string) (err error) {
-	var (
-		remote bool
-		opt    int
+func newCheckCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "check",
+		Short: "check and verify specified volume",
+		Args:  cobra.MinimumNArgs(0),
+	}
+
+	c.AddCommand(
+		newCheckInodeCmd(),
+		newCheckDentryCmd(),
+		newCheckBothCmd(),
 	)
+
+	return c
+}
+
+func newCheckInodeCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "inode",
+		Short: "check and verify inode",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := Check(InodeCheckOpt); err != nil {
+				fmt.Println(err)
+			}
+		},
+	}
+
+	return c
+}
+
+func newCheckDentryCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "dentry",
+		Short: "check and verify dentry",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := Check(DentryCheckOpt); err != nil {
+				fmt.Println(err)
+			}
+		},
+	}
+
+	return c
+}
+
+func newCheckBothCmd() *cobra.Command {
+	var c = &cobra.Command{
+		Use:   "both",
+		Short: "check and verify both inode and dentry",
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := Check(InodeCheckOpt | DentryCheckOpt); err != nil {
+				fmt.Println(err)
+			}
+		},
+	}
+
+	return c
+}
+
+func Check(chkopt int) (err error) {
+	var remote bool
 
 	if InodesFile == "" || DensFile == "" {
 		remote = true
 	}
 
-	if VolName == "" || (remote && (MasterAddr == "" || (chkopt != "inode" && chkopt != "dentry"))) {
-		flag.Usage()
+	if VolName == "" || (remote && (MasterAddr == "")) {
+		err = fmt.Errorf("Lack of mandatory args: master(%v) vol(%v)", MasterAddr, VolName)
 		return
 	}
 
@@ -47,11 +117,6 @@ func Check(chkopt string) (err error) {
 	}
 
 	if remote {
-		if chkopt == "dentry" {
-			opt = DentryCheckOpt
-		} else {
-			opt = InodeCheckOpt
-		}
 		if ifile, err = os.Create(fmt.Sprintf("%s/%s", dirPath, inodeDumpFileName)); err != nil {
 			return
 		}
@@ -60,14 +125,13 @@ func Check(chkopt string) (err error) {
 			return
 		}
 		defer dfile.Close()
-		if err = importRawDataFromRemote(ifile, dfile, opt); err != nil {
+		if err = importRawDataFromRemote(ifile, dfile, chkopt); err != nil {
 			return
 		}
 		// go back to the beginning of the files
 		ifile.Seek(0, 0)
 		dfile.Seek(0, 0)
 	} else {
-		opt = InodeCheckOpt | DentryCheckOpt
 		if ifile, err = os.Open(InodesFile); err != nil {
 			return
 		}
@@ -86,12 +150,12 @@ func Check(chkopt string) (err error) {
 		return
 	}
 
-	if opt&InodeCheckOpt != 0 {
+	if chkopt&InodeCheckOpt != 0 {
 		if err = dumpObsoleteInode(imap, fmt.Sprintf("%s/%s", dirPath, obsoleteInodeDumpFileName)); err != nil {
 			return
 		}
 	}
-	if opt&DentryCheckOpt != 0 {
+	if chkopt&DentryCheckOpt != 0 {
 		if err = dumpObsoleteDentry(dlist, fmt.Sprintf("%s/%s", dirPath, obsoleteDentryDumpFileName)); err != nil {
 			return
 		}

@@ -1,7 +1,8 @@
 ### Command examples
 
 ```bash
-./fsck -master "<masterAddr>" -vol "<volName>" -check "inode"
-./fsck -master "<masterAddr>" -vol "<volName>" -check "dentry"
-./fsck -vol "<volName>" -inodes "inodes.txt" -dens "dens.txt" -check "both"
+./fsck check inode -master "<masterAddr>" -vol "<volName>"
+./fsck check dentry -master "<masterAddr>" -vol "<volName>"
+./fsck check both -master "<masterAddr>" -vol "<volName>"
+./fsck check both -vol "<volName>" --inode-list "inodes.txt" --dentry-list "dens.txt"
 ```
