@@ -16,6 +16,12 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/chubaofs/chubaofs/sdk/meta"
+	"github.com/chubaofs/chubaofs/util/log"
+	"github.com/chubaofs/chubaofs/util/ump"
 )
 
 var (
@@ -25,6 +31,8 @@ var (
 	DensFile   string
 	MetaPort   string
 )
+
+var gMetaWrapper *meta.MetaWrapper
 
 var (
 	inodeDumpFileName          string = "inode.dump"
@@ -70,4 +78,30 @@ func (d *Dentry) String() string {
 		return ""
 	}
 	return string(data)
+}
+
+func initMetaWrapper() (*meta.MetaWrapper, error) {
+	if MasterAddr == "" || VolName == "" {
+		return nil, fmt.Errorf("Lack of parameters: master(%v) vol(%v)", MasterAddr, VolName)
+	}
+
+	ump.InitUmp("fsck", "")
+
+	_, err := log.InitLog("fscklog", "fsck", log.InfoLevel, nil)
+	if err != nil {
+		return nil, fmt.Errorf("Init log failed: %v", err)
+	}
+
+	masters := strings.Split(MasterAddr, meta.HostsSeparator)
+	var metaConfig = &meta.MetaConfig{
+		Volume:  VolName,
+		Masters: masters,
+	}
+
+	mw, err := meta.NewMetaWrapper(metaConfig)
+	if err != nil {
+		return nil, fmt.Errorf("NewMetaWrapper failed: %v", err)
+	}
+
+	return mw, nil
 }

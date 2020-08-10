@@ -27,12 +27,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/chubaofs/chubaofs/proto"
-	"github.com/chubaofs/chubaofs/sdk/meta"
 	"github.com/chubaofs/chubaofs/util/log"
-	"github.com/chubaofs/chubaofs/util/ump"
 )
-
-var gMetaWrapper *meta.MetaWrapper
 
 func newCleanCmd() *cobra.Command {
 	var c = &cobra.Command{
@@ -93,28 +89,13 @@ func newEvictInodeCmd() *cobra.Command {
 }
 
 func Clean(opt string) error {
+	var err error
+
 	defer log.LogFlush()
 
-	if MasterAddr == "" || VolName == "" {
-		return fmt.Errorf("Lack of parameters: master(%v) vol(%v)", MasterAddr, VolName)
-	}
-
-	ump.InitUmp("fsck", "")
-
-	_, err := log.InitLog("fscklog", "fsck", log.InfoLevel, nil)
+	gMetaWrapper, err = initMetaWrapper()
 	if err != nil {
-		return fmt.Errorf("Init log failed: %v", err)
-	}
-
-	masters := strings.Split(MasterAddr, meta.HostsSeparator)
-	var metaConfig = &meta.MetaConfig{
-		Volume:  VolName,
-		Masters: masters,
-	}
-
-	gMetaWrapper, err = meta.NewMetaWrapper(metaConfig)
-	if err != nil {
-		return fmt.Errorf("NewMetaWrapper failed: %v", err)
+		return err
 	}
 
 	switch opt {

@@ -31,6 +31,7 @@ func NewRootCmd() *cobra.Command {
 	c.AddCommand(
 		newCheckCmd(),
 		newCleanCmd(),
+		newOpCmd(),
 	)
 
 	c.PersistentFlags().StringVarP(&MasterAddr, "master", "m", "", "master addresses")
